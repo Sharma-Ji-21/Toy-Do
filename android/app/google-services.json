@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "959806532917",
+    "project_id": "toy-do",
+    "storage_bucket": "toy-do.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:959806532917:android:c22578b460ec281377707c",
+        "android_client_info": {
+          "package_name": "com.example.toy_do"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC6kvuWcKITJ-qnQI7Yo1E14XY3EAtqk4c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
