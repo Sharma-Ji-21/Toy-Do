@@ -51,9 +51,11 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return isAdding
         ? Scaffold(
+            backgroundColor: Colors.white,
             appBar: AppBar(
+              backgroundColor: Colors.white,
               title: Text(
-                "Add Item",
+                "Add Toy",
                 style: TextStyle(
                   color: Colors.black,
                   fontSize: 24,
@@ -190,8 +192,17 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           )
         : Scaffold(
+            backgroundColor: Colors.white,
             appBar: AppBar(
-              title: Text("data"),
+              backgroundColor: Colors.white,
+              title: Text(
+                "My WishList",
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ),
             body: SafeArea(
               child: Stack(
@@ -210,19 +221,19 @@ class _HomeScreenState extends State<HomeScreen> {
                             children: [
                               Padding(
                                 padding: const EdgeInsets.only(
-                                    top: 18.0, left: 13.0),
+                                    top: 18.0, left: 15.0),
                                 child: Container(
                                   width:
                                       MediaQuery.of(context).size.width / 2.35,
                                   height:
-                                      MediaQuery.of(context).size.height / 7.8,
+                                      MediaQuery.of(context).size.height / 8.3,
                                   decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(20),
-                                      color: Colors.grey),
+                                      borderRadius: BorderRadius.circular(30),
+                                      color: Colors.grey[700]),
                                 ),
                               ),
                               Positioned(
-                                right: 3,
+                                right: 0,
                                 child: Container(
                                   height: 40,
                                   width: 40,
@@ -230,10 +241,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                     borderRadius: BorderRadius.circular(20),
                                     color: Colors.red,
                                   ),
-                                  child: Icon(
-                                    Icons.dangerous_outlined,
-                                    size: 40,
-                                    color: Colors.white,
+                                  child: GestureDetector(
+                                    onTap: () =>
+                                        deleteToy(allToys[index]["key"]),
+                                    child: Icon(
+                                      Icons.dangerous_outlined,
+                                      size: 40,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -289,22 +304,24 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                                   )),
                               Positioned(
-                                right: 3,
+                                right: 0,
                                 bottom: 0,
                                 child: Container(
-                                  height: 30,
-                                  width: 80,
+                                  height: 40,
+                                  width: 40,
                                   decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(10),
+                                    borderRadius: BorderRadius.circular(20),
                                     color: Colors.green,
                                   ),
-                                  child: Center(
-                                      child: Text(
-                                    "Purchased",
-                                    style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold),
-                                  )),
+                                  child: GestureDetector(
+                                    onTap: () =>
+                                        toyPurchased(allToys[index]["key"]),
+                                    child: Icon(
+                                      Icons.check_circle_outline,
+                                      size: 40,
+                                      color: Colors.white,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ],
@@ -314,8 +331,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   Positioned(
-                    bottom: 20,
-                    right: 20,
+                    bottom: 10,
+                    right: 15,
                     child: GestureDetector(
                       onTap: () {
                         setState(() {
@@ -327,8 +344,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(25),
                             color: Colors.red),
-                        height: 75,
-                        width: 75,
+                        height: 65,
+                        width: 65,
+                        child: Icon(
+                          Icons.add,
+                          color: Colors.white,
+                          size: 45,
+                        ),
                       ),
                     ),
                   )
@@ -338,12 +360,55 @@ class _HomeScreenState extends State<HomeScreen> {
           );
   }
 
+  void toyPurchased(String key) async {
+    try {
+      await databaseRef.child(key).update({"toyPurchased": true});
+      fetchData();
+      Fluttertoast.showToast(
+        msg: "Toy marked as purchased!",
+        backgroundColor: Colors.green,
+        timeInSecForIosWeb: 2,
+      );
+    } catch (e) {
+      print("Failed to update: $e");
+      Fluttertoast.showToast(
+        msg: "Failed to mark toy as purchased",
+        backgroundColor: Colors.red,
+        timeInSecForIosWeb: 2,
+      );
+    }
+  }
+
+  void deleteToy(String key) async {
+    try {
+      await databaseRef.child(key).remove();
+
+      setState(() {
+        allToys.removeWhere((toy) => toy["key"] == key);
+      });
+
+      Fluttertoast.showToast(
+        msg: "Toy deleted successfully!",
+        backgroundColor: Colors.green,
+        timeInSecForIosWeb: 2,
+      );
+    } catch (e) {
+      print("Failed to delete: $e");
+      Fluttertoast.showToast(
+        msg: "Failed to delete toy",
+        backgroundColor: Colors.red,
+        timeInSecForIosWeb: 2,
+      );
+    }
+  }
+
   void fetchData() async {
     databaseRef.once().then((DatabaseEvent event) {
       final data = event.snapshot.value;
       if (data != null && data is Map) {
         setState(() {
           allToys = data.entries
+              .where((e) => e.value["toyPurchased"] == false)
               .map((e) => {
                     "key": e.key,
                     ...e.value,
@@ -366,6 +431,19 @@ class _HomeScreenState extends State<HomeScreen> {
     var toyName = toyNameController.text.toString();
     var toyPrice = toyPriceController.text.toString();
     var toyLink = toyLinkController.text.toString();
+
+    if (toyImage.isEmpty ||
+        toyName.isEmpty ||
+        toyLink.isEmpty ||
+        toyPrice.isEmpty) {
+      Fluttertoast.showToast(
+        msg: "Please fill all the fields and upload image",
+        backgroundColor: Colors.orange,
+        timeInSecForIosWeb: 2,
+        gravity: ToastGravity.TOP,
+      );
+      return;
+    }
 
     final newToyRef = databaseRef.push();
     await newToyRef.set({
@@ -421,13 +499,11 @@ class _HomeScreenState extends State<HomeScreen> {
     if (response.statusCode == 201) {
       final responseData = jsonDecode(response.body);
       final downloadUrl = responseData['content']['download_url'];
-
       Fluttertoast.showToast(
         msg: "Uploaded successfully!",
         backgroundColor: Colors.green,
         timeInSecForIosWeb: 2,
       );
-
       return downloadUrl;
     } else {
       Fluttertoast.showToast(
@@ -435,7 +511,6 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: Colors.red,
         timeInSecForIosWeb: 2,
       );
-
       return "";
     }
   }
