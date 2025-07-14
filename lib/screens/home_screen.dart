@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -199,37 +200,116 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: GridView.builder(
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 2, childAspectRatio: 1.5),
-                      itemCount: allToys.length + 8,
+                      itemCount: allToys.length,
                       itemBuilder: (context, index) {
-                        return Stack(children: [
-                          Padding(
-                            padding:
-                                const EdgeInsets.only(top: 18.0, left: 13.0),
-                            child: Container(
-                              width: MediaQuery.of(context).size.width / 2.5,
-                              height: MediaQuery.of(context).size.height / 7.8,
-                              decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(20),
-                                  color: Colors.green),
-                            ),
-                          ),
-                          Positioned(
-                            right: 3,
-                            child: Container(
-                              height: 40,
-                              width: 40,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(20),
-                                color: Colors.red,
+                        bool havingImage =
+                            allToys[index]["toyImage"].toString().isNotEmpty;
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 0),
+                          child: Stack(
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                    top: 18.0, left: 13.0),
+                                child: Container(
+                                  width:
+                                      MediaQuery.of(context).size.width / 2.35,
+                                  height:
+                                      MediaQuery.of(context).size.height / 7.8,
+                                  decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(20),
+                                      color: Colors.grey),
+                                ),
                               ),
-                              child: Icon(
-                                Icons.dangerous_outlined,
-                                size: 40,
-                                color: Colors.white,
+                              Positioned(
+                                right: 3,
+                                child: Container(
+                                  height: 40,
+                                  width: 40,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(20),
+                                    color: Colors.red,
+                                  ),
+                                  child: Icon(
+                                    Icons.dangerous_outlined,
+                                    size: 40,
+                                    color: Colors.white,
+                                  ),
+                                ),
                               ),
-                            ),
+                              Positioned(
+                                left: 0,
+                                top: 17,
+                                child: CircleAvatar(
+                                  backgroundColor: Colors.grey[300],
+                                  radius: 55,
+                                  backgroundImage: havingImage
+                                      ? NetworkImage(allToys[index]["toyImage"])
+                                      : null,
+                                  child: !havingImage
+                                      ? const Text(
+                                          "No Image",
+                                          style: TextStyle(fontSize: 12),
+                                        )
+                                      : null,
+                                ),
+                              ),
+                              Positioned(
+                                  right: 20,
+                                  top: 33,
+                                  child: Container(
+                                    // height: 40,
+                                    width: 73,
+                                    // color: Colors.red,
+                                    child: Center(
+                                      child: Text(
+                                        allToys[index]["toyName"],
+                                        style: TextStyle(
+                                            fontSize: 18,
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  )),
+                              Positioned(
+                                  right: 20,
+                                  top: 75,
+                                  child: Container(
+                                    // height: 40,
+                                    width: 73,
+                                    // color: Colors.red,
+                                    child: Center(
+                                      child: Text(
+                                        "₹${allToys[index]["toyPrice"]}",
+                                        style: TextStyle(
+                                            fontSize: 15,
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  )),
+                              Positioned(
+                                right: 3,
+                                bottom: 0,
+                                child: Container(
+                                  height: 30,
+                                  width: 80,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(10),
+                                    color: Colors.green,
+                                  ),
+                                  child: Center(
+                                      child: Text(
+                                    "Purchased",
+                                    style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold),
+                                  )),
+                                ),
+                              ),
+                            ],
                           ),
-                        ]);
+                        );
                       },
                     ),
                   ),
@@ -258,13 +338,17 @@ class _HomeScreenState extends State<HomeScreen> {
           );
   }
 
-  void fetchData() {
-    FirebaseFirestore.instance.collection("Toys").get().then((value) {
-      for (var doc in value.docs) {
-        print(doc.data());
+  void fetchData() async {
+    databaseRef.once().then((DatabaseEvent event) {
+      final data = event.snapshot.value;
+      if (data != null && data is Map) {
         setState(() {
-          allToys.add(doc);
-          print(allToys);
+          allToys = data.entries
+              .map((e) => {
+                    "key": e.key,
+                    ...e.value,
+                  })
+              .toList();
         });
       }
     }).catchError((error) {
@@ -273,37 +357,30 @@ class _HomeScreenState extends State<HomeScreen> {
         allToys = [];
       });
     });
-    print("Data has been fetched");
   }
 
+  final databaseRef = FirebaseDatabase.instance.ref("Toys");
+
   void addToWishList() async {
-    print("added to WishList");
+    var toyImage = await uploadToGithub();
     var toyName = toyNameController.text.toString();
     var toyPrice = toyPriceController.text.toString();
     var toyLink = toyLinkController.text.toString();
-    print(toyName);
-    print(toyPrice);
-    print(toyLink);
-    var toyImage = await uploadToGithub();
-    print(toyImage);
-    FirebaseFirestore.instance.collection("Toys").add({
+
+    final newToyRef = databaseRef.push();
+    await newToyRef.set({
       "toyName": toyName,
       "toyPrice": toyPrice,
       "toyLink": toyLink,
       "toyImage": toyImage,
-    }).then((value) {
-      print("Toys Added Successfully");
-      Fluttertoast.showToast(
-          msg: "Toys Added Successfully!",
-          backgroundColor: Colors.green,
-          timeInSecForIosWeb: 2);
-    }).catchError((error) {
-      print("Failed to Add Toys: $error");
-      Fluttertoast.showToast(
-          msg: "Failed to Add Toys",
-          backgroundColor: Colors.red,
-          timeInSecForIosWeb: 2);
+      "toyPurchased": false,
     });
+
+    Fluttertoast.showToast(
+        msg: "Toy Added Successfully!",
+        backgroundColor: Colors.green,
+        timeInSecForIosWeb: 2);
+
     setState(() {
       toyNameController.clear();
       toyPriceController.clear();
@@ -311,6 +388,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _image = null;
       isAdding = !isAdding;
     });
+    fetchData();
   }
 
   Future<String> uploadToGithub() async {
