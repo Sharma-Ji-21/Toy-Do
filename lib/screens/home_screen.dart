@@ -22,6 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool isUploading = false;
   List allToys = [];
   bool isAdding = false;
+  List toyPurchasedList = [];
   var toyNameController = TextEditingController();
   var toyLinkController = TextEditingController();
   var toyPriceController = TextEditingController();
@@ -42,7 +43,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     fetchData();
   }
@@ -207,128 +207,56 @@ class _HomeScreenState extends State<HomeScreen> {
             body: SafeArea(
               child: Stack(
                 children: [
-                  Positioned(
-                    child: GridView.builder(
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2, childAspectRatio: 1.5),
-                      itemCount: allToys.length,
-                      itemBuilder: (context, index) {
-                        bool havingImage =
-                            allToys[index]["toyImage"].toString().isNotEmpty;
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 0),
-                          child: Stack(
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                    top: 18.0, left: 15.0),
-                                child: Container(
-                                  width:
-                                      MediaQuery.of(context).size.width / 2.35,
-                                  height:
-                                      MediaQuery.of(context).size.height / 8.3,
-                                  decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(30),
-                                      color: Colors.grey[700]),
-                                ),
-                              ),
-                              Positioned(
-                                right: 0,
-                                child: Container(
-                                  height: 40,
-                                  width: 40,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(20),
-                                    color: Colors.red,
-                                  ),
-                                  child: GestureDetector(
-                                    onTap: () =>
-                                        deleteToy(allToys[index]["key"]),
-                                    child: Icon(
-                                      Icons.dangerous_outlined,
-                                      size: 40,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Positioned(
-                                left: 0,
-                                top: 17,
-                                child: CircleAvatar(
-                                  backgroundColor: Colors.grey[300],
-                                  radius: 55,
-                                  backgroundImage: havingImage
-                                      ? NetworkImage(allToys[index]["toyImage"])
-                                      : null,
-                                  child: !havingImage
-                                      ? const Text(
-                                          "No Image",
-                                          style: TextStyle(fontSize: 12),
-                                        )
-                                      : null,
-                                ),
-                              ),
-                              Positioned(
-                                  right: 20,
-                                  top: 33,
-                                  child: Container(
-                                    // height: 40,
-                                    width: 73,
-                                    // color: Colors.red,
-                                    child: Center(
-                                      child: Text(
-                                        allToys[index]["toyName"],
-                                        style: TextStyle(
-                                            fontSize: 18,
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold),
-                                      ),
-                                    ),
-                                  )),
-                              Positioned(
-                                  right: 20,
-                                  top: 75,
-                                  child: Container(
-                                    // height: 40,
-                                    width: 73,
-                                    // color: Colors.red,
-                                    child: Center(
-                                      child: Text(
-                                        "₹${allToys[index]["toyPrice"]}",
-                                        style: TextStyle(
-                                            fontSize: 15,
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold),
-                                      ),
-                                    ),
-                                  )),
-                              Positioned(
-                                right: 0,
-                                bottom: 0,
-                                child: Container(
-                                  height: 40,
-                                  width: 40,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(20),
-                                    color: Colors.green,
-                                  ),
-                                  child: GestureDetector(
-                                    onTap: () =>
-                                        toyPurchased(allToys[index]["key"]),
-                                    child: Icon(
-                                      Icons.check_circle_outline,
-                                      size: 40,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
+                  CustomScrollView(
+                    slivers: [
+                      if (allToys.isNotEmpty)
+                        SliverGrid(
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            childAspectRatio: 1.5,
                           ),
-                        );
-                      },
-                    ),
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                              return _buildToyCard(allToys[index], false);
+                            },
+                            childCount: allToys.length,
+                          ),
+                        ),
+                      if (toyPurchasedList.isNotEmpty)
+                        SliverToBoxAdapter(
+                          child: Container(
+                            padding: EdgeInsets.all(16),
+                            child: Text(
+                              "Purchased Toys",
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.black,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                      if (toyPurchasedList.isNotEmpty)
+                        SliverGrid(
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            childAspectRatio: 1.5,
+                          ),
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                              return _buildToyCard(
+                                  toyPurchasedList[index], true);
+                            },
+                            childCount: toyPurchasedList.length,
+                          ),
+                        ),
+                      SliverToBoxAdapter(
+                        child: SizedBox(height: 80),
+                      ),
+                    ],
                   ),
                   Positioned(
                     bottom: 10,
@@ -358,6 +286,141 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           );
+  }
+
+  Widget _buildToyCard(Map toy, bool isPurchased) {
+    bool havingImage = toy["toyImage"].toString().isNotEmpty;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 0),
+      child: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 18.0, left: 15.0),
+            child: Container(
+              width: MediaQuery.of(context).size.width / 2.35,
+              height: MediaQuery.of(context).size.height / 8.3,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(35),
+                color: Colors.grey[700],
+              ),
+            ),
+          ),
+          if (!isPurchased)
+            Positioned(
+              top: 4,
+              right: 0,
+              child: Container(
+                height: 40,
+                width: 40,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  color: Colors.red,
+                ),
+                child: GestureDetector(
+                  onTap: () => deleteToy(toy["key"]),
+                  child: Icon(
+                    Icons.dangerous_outlined,
+                    size: 40,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          Positioned(
+            left: 0,
+            top: 17,
+            child: CircleAvatar(
+              backgroundColor: Colors.grey[300],
+              radius: 55,
+              backgroundImage:
+                  havingImage ? NetworkImage(toy["toyImage"]) : null,
+              child: !havingImage
+                  ? const Text(
+                      "No Image",
+                      style: TextStyle(fontSize: 12),
+                    )
+                  : null,
+            ),
+          ),
+          Positioned(
+            right: 20,
+            top: 33,
+            child: Container(
+              width: 73,
+              child: Center(
+                child: Text(
+                  toy["toyName"],
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            right: 20,
+            top: 75,
+            child: Container(
+              width: 73,
+              child: Center(
+                child: Text(
+                  "₹${toy["toyPrice"]}",
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            right: 0,
+            bottom: 0,
+            child: Container(
+              height: 40,
+              width: 40,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                color: isPurchased ? Colors.orange : Colors.green,
+              ),
+              child: GestureDetector(
+                onTap: () => isPurchased
+                    ? undoPurchased(toy["key"])
+                    : toyPurchased(toy["key"]),
+                child: Icon(
+                  isPurchased ? Icons.undo : Icons.check_circle_outline,
+                  size: 40,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void undoPurchased(String key) async {
+    try {
+      await databaseRef.child(key).update({"toyPurchased": false});
+      fetchData();
+      Fluttertoast.showToast(
+        msg: "Toy marked as Un-Purchased!",
+        backgroundColor: Colors.green,
+        timeInSecForIosWeb: 2,
+      );
+    } catch (e) {
+      print("Failed to update: $e");
+      Fluttertoast.showToast(
+        msg: "Failed to mark toy as purchased",
+        backgroundColor: Colors.red,
+        timeInSecForIosWeb: 2,
+      );
+    }
   }
 
   void toyPurchased(String key) async {
@@ -403,6 +466,28 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void fetchData() async {
+    databaseRef.once().then((DatabaseEvent event) {
+      final data = event.snapshot.value;
+      if (data != null && data is Map) {
+        setState(() {
+          toyPurchasedList = data.entries
+              .where((e) => e.value["toyPurchased"] == true)
+              .map((e) => {
+                    "key": e.key,
+                    ...e.value,
+                  })
+              .toList();
+          print("toyPurchasedList");
+          print(toyPurchasedList);
+        });
+      }
+    }).catchError((error) {
+      print("Failed to fetch data: $error");
+      setState(() {
+        toyPurchasedList = [];
+      });
+    });
+
     databaseRef.once().then((DatabaseEvent event) {
       final data = event.snapshot.value;
       if (data != null && data is Map) {
