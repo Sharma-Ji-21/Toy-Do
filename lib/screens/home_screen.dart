@@ -10,6 +10,8 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 
+import '../services/imageWebViewPage.dart';
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -54,11 +56,23 @@ class _HomeScreenState extends State<HomeScreen> {
             backgroundColor: Colors.white,
             appBar: AppBar(
               backgroundColor: Colors.white,
+              elevation: 0,
+              leading: IconButton(
+                  onPressed: () {
+                    setState(() {
+                      isAdding = !isAdding;
+                    });
+                  },
+                  icon: Icon(
+                    Icons.arrow_back_ios_new,
+                    color: Colors.black,
+                  )),
+              centerTitle: true,
               title: Text(
                 "Add Toy",
                 style: TextStyle(
                   color: Colors.black,
-                  fontSize: 24,
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -176,13 +190,17 @@ class _HomeScreenState extends State<HomeScreen> {
                             color: Colors.red,
                           ),
                           child: Center(
-                              child: Text(
-                            "Add Toy to WishList",
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold),
-                          )),
+                              child: isUploading
+                                  ? CircularProgressIndicator(
+                                      color: Colors.white,
+                                    )
+                                  : Text(
+                                      "Add Toy to WishList",
+                                      style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold),
+                                    )),
                         ),
                       )
                     ],
@@ -330,17 +348,27 @@ class _HomeScreenState extends State<HomeScreen> {
           Positioned(
             left: 0,
             top: 17,
-            child: CircleAvatar(
-              backgroundColor: Colors.grey[300],
-              radius: 55,
-              backgroundImage:
-                  havingImage ? NetworkImage(toy["toyImage"]) : null,
-              child: !havingImage
-                  ? const Text(
-                      "No Image",
-                      style: TextStyle(fontSize: 12),
-                    )
-                  : null,
+            child: GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ImageWebViewPage(url: toy["toyLink"]),
+                  ),
+                );
+              },
+              child: CircleAvatar(
+                backgroundColor: Colors.grey[300],
+                radius: 55,
+                backgroundImage:
+                    havingImage ? NetworkImage(toy["toyImage"]) : null,
+                child: !havingImage
+                    ? const Text(
+                        "No Image",
+                        style: TextStyle(fontSize: 12),
+                      )
+                    : null,
+              ),
             ),
           ),
           Positioned(
