@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/cupertino.dart';
@@ -308,7 +307,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildToyCard(Map toy, bool isPurchased) {
     bool havingImage = toy["toyImage"].toString().isNotEmpty;
-
     return Padding(
       padding: const EdgeInsets.only(bottom: 0),
       child: Stack(
